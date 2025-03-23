@@ -1,7 +1,7 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
-import 'login_viewmodel.dart';
+import 'package:flutter_app_demo_mvvm/home/home_view.dart';
+import 'package:provider/provider.dart';
+import 'login_bloc.dart';
 
 class LoginPage extends StatelessWidget {
   const LoginPage({super.key});
@@ -9,16 +9,22 @@ class LoginPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(
-          title: const Text(
-            "Login",
-            style: TextStyle(
-                fontSize: 20, color: Colors.white, fontWeight: FontWeight.bold),
-          ),
-          centerTitle: true,
-          backgroundColor: Colors.blue,
+      appBar: AppBar(
+        title: const Text(
+          "Login",
+          style: TextStyle(
+              fontSize: 20, color: Colors.white, fontWeight: FontWeight.bold),
         ),
-        body: const BodyWidget());
+        centerTitle: true,
+        backgroundColor: Colors.blue,
+      ),
+      body: ChangeNotifierProvider(
+        // Đây là nơi khởi tạo instance của LoginBloc.
+        // BodyWidget là widget con sẽ nhận được LoginBloc từ Provider.
+        create: (context) => LoginBloc(),
+        child: const BodyWidget(),
+      ),
+    );
   }
 }
 
@@ -33,40 +39,40 @@ class _BodyWidgetState extends State<BodyWidget> {
   final emailController = TextEditingController();
   final passController = TextEditingController();
 
-  final loginViewModel = LoginViewmodel();
-
   @override
   void initState() {
     super.initState();
 
     // Khi người dùng nhập vào email, nó sẽ lắng nghe giá trị mới.
     // Sau đó, giá trị nhập vào sẽ được thêm vào stream (emailSink.add(emailController.text);).
+    // Bất kỳ widget con nào trong BodyWidget có thể truy xuất LoginBloc bằng cách gọi: Provider.of<LoginBloc>(context);
     emailController.addListener(() {
-      loginViewModel.emailSink.add(emailController.text);
+      Provider.of<LoginBloc>(context, listen: false)
+          .emailSink
+          .add(emailController.text);
     });
 
-    // Tuong tu
     passController.addListener(() {
-      loginViewModel.passSink.add(passController.text);
+      Provider.of<LoginBloc>(context, listen: false)
+          .passSink
+          .add(passController.text);
     });
   }
 
-  @override
-  void dispose() {
-    super.dispose();
-
-    loginViewModel.dispose();
-  }
+  // dispose() sẽ được call tự động vì đã có provider
 
   @override
   Widget build(BuildContext context) {
+    // lấy đối tượng LoginBloc từ Provider,
+    var loginBloc = Provider.of<LoginBloc>(context);
+
     return Container(
       padding: const EdgeInsets.only(left: 40, right: 40),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           StreamBuilder<String?>(
-            stream: loginViewModel.emailStream,
+            stream: loginBloc.emailStream,
             builder: (context, snapshot) => TextFormField(
               controller: emailController,
               decoration: InputDecoration(
@@ -84,7 +90,7 @@ class _BodyWidgetState extends State<BodyWidget> {
             height: 20,
           ),
           StreamBuilder<String?>(
-            stream: loginViewModel.passStream,
+            stream: loginBloc.passStream,
             builder: (context, snapshot) => TextFormField(
               controller: passController,
               decoration: InputDecoration(
@@ -102,7 +108,7 @@ class _BodyWidgetState extends State<BodyWidget> {
             height: 40,
           ),
           StreamBuilder(
-            stream: loginViewModel.btnStream,
+            stream: loginBloc.btnStream,
             builder: (context, snapshot) => SizedBox(
               width: 200,
               height: 45,
@@ -114,8 +120,11 @@ class _BodyWidgetState extends State<BodyWidget> {
                   // Đây là cách bật/tắt nút đăng nhập dựa trên tính hợp lệ của email và password trong StreamBuilder.
                   onPressed: snapshot.data == true
                       ? () {
-                          // call login api
-                          print("call login api");
+                          // Navigator.pushReplacement() -> Khi không muốn quay lại trang trước (vd: đăng nhập xong chuyển sang Home).
+                          Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => const HomePage()));
                         }
                       : null,
                   child: const Text(
