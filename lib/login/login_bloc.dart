@@ -35,7 +35,7 @@ class LoginBloc with ChangeNotifier {
   Stream<bool> get btnStream => _btnSubject.stream;
   Sink<bool> get btnSink => _btnSubject.sink;
 
-  LogicBloc() {
+  LoginBloc() {
     // Kết hợp 2 stream
     Rx.combineLatest2(_emailSubject, _passSubject, (String email, String pass) {
       return Validation.validateEmail(email) == null &&
